@@ -1,51 +1,37 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
+from sklearn.neighbors import KNeighborsClassifier
 
 st.title("💳 KNN Fraud Detection App")
-st.write("Enter transaction details to check whether it is **Fraud** or **Genuine**")
+st.write("Enter transaction details to check whether it is Fraud or Genuine")
 
+# Upload CSV file
+uploaded_file = st.file_uploader("Upload CSV file", type="csv")
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    st.dataframe(df.head())
 
-df = pd.read_csv("creditcard.csv")
+    # Example: Train simple KNN (for demo)
+    # Use first 100 rows for speed
+    df_sample = df.sample(100)
+    X = df_sample.drop('Class', axis=1)
+    y = df_sample['Class']
 
+    model = KNeighborsClassifier(n_neighbors=5)
+    model.fit(X, y)
 
-st.sidebar.header("🔢 Enter Input Values")
+    st.write("Model trained on sample data")
 
-amount = st.sidebar.number_input("Transaction Amount", value=0.0)
-feature2 = st.sidebar.number_input("Second Feature", value=0.0)
+    # Optional: Let user input new transaction
+    st.subheader("Predict new transaction")
+    input_data = []
+    for col in X.columns[:5]:  # just example first 5 features
+        val = st.number_input(f"Enter {col}", value=0.0)
+        input_data.append(val)
 
-
-if st.button("Predict"):
-    # This is frontend demo output
-    if amount > 2000:
-        st.error("🚨 Fraudulent Transaction")
-    else:
-        st.success("✅ Genuine Transaction")
-
-
-st.subheader("📊 Dataset Visualization")
-
-if st.checkbox("Show Scatter Plot"):
-    numeric_cols = df.select_dtypes(include=['int64','float64']).columns
-
-    x_col = numeric_cols[0]
-    y_col = numeric_cols[1]
-
-    fig, ax = plt.subplots()
-    sns.scatterplot(
-        x=df[x_col],
-        y=df[y_col],
-        hue=df['Class'],
-        palette={0:'blue', 1:'red'},
-        alpha=0.6,
-        ax=ax
-    )
-
-    ax.set_title("Fraud vs Genuine Transactions")
-    ax.set_xlabel(x_col)
-    ax.set_ylabel(y_col)
-
-    st.pyplot(fig)
+    if st.button("Predict"):
+        pred = model.predict([input_data])
+        if pred[0] == 1:
+            st.error("⚠️ Fraud Transaction!")
+        else:
+            st.success("✅ Genuine Transaction")
